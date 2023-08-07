@@ -4,14 +4,28 @@ import time
 
 def create_dms_task(dms_client, replication_task_name, source_endpoint_arn, target_endpoint_arn, migration_type):
     try:
-        response = dms_client.create_replication_task(
-            ReplicationTaskIdentifier=replication_task_name,
-            SourceEndpointArn=source_endpoint_arn,
-            TargetEndpointArn=target_endpoint_arn,
-            MigrationType=migration_type
+        # Get the DMS task details
+        response = dms_client.describe_replication_tasks(Filters=[{'Name': 'replication-task-arn', 'Values': [task_arn]}])
+        task = response['ReplicationTasks'][0]
+    
+        # Calculate the number of records to migrate in each chunk
+        total_records = task['ReplicationTaskStats']['FullLoadProgressPercent']
+        total_records_to_migrate = (chunk_size * total_records) // 100
+    
+        # Start the DMS task with the specified chunk size
+        response = dms_client.start_replication_task(
+            ReplicationTaskArn=task_arn,
+            StartReplicationTaskType='start-replication',
+            CdcStartPosition=task['ReplicationTaskStats']['FullLoadCdcStartPosition'],
+            CdcStopPosition=task['ReplicationTaskStats']['FullLoadCdcStopPosition'],
+            CdcStartTime=task['ReplicationTaskStats']['FullLoadCdcStartTime'],
+            CdcStopTime=task['ReplicationTaskStats']['FullLoadCdcStopTime'],
+            TableMappings=task['ReplicationTaskStats']['TableMappings'],
+            ReplicationTaskSettings=task['ReplicationTaskStats']['ReplicationTaskSettings'],
+            CdcStartPositionForChunk=total_records_to_migrate
         )
-        print("DMS task created successfully.")
-        return response['ReplicationTask']['ReplicationTaskArn']
+    
+        print("DMS task started with chunk size:", chunk_size)
     except botocore.exceptions.ClientError as e:
         print("Error creating DMS task:", e)
         return None

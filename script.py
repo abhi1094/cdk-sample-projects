@@ -2,6 +2,54 @@ import boto3
 import botocore.exceptions
 import time
 
+def create_dms_replication_task(use_range_filter=False, range_condition=None):
+    # Initialize the DMS client
+    dms_client = boto3.client('dms')
+
+    # Define default table mapping rule (no filter)
+    table_mappings = '''
+    {
+        "rules": []
+    }
+    '''
+
+    # If use_range_filter is True, create a custom table mapping rule with filter
+    if use_range_filter and range_condition:
+        table_mappings = '''
+        {
+            "rules": [
+                {
+                    "rule-type": "transformation",
+                    "rule-id": "1",
+                    "rule-action": "selection",
+                    "rule-name": "FilterByRange",
+                    "object-locator": {
+                        "schema-name": "your_schema_name",
+                        "table-name": "your_table_name"
+                    },
+                    "filters": [
+                        {
+                            "filter-type": "custom",
+                            "custom-operator": "sql",
+                            "value": "your_range_condition"
+                        }
+                    ]
+                }
+            ]
+        }
+        '''
+
+    # Create the replication task with the chosen table mapping rule
+    response = dms_client.create_replication_task(
+        MigrationType='full-load',
+        SourceEndpointArn='your_source_endpoint_arn',
+        TargetEndpointArn='your_target_endpoint_arn',
+        TableMappings=table_mappings,
+        ReplicationTaskIdentifier='your_task_identifier'
+    )
+
+    print(response)
+
 def create_dms_task(dms_client, replication_task_name, source_endpoint_arn, target_endpoint_arn, migration_type):
     try:
         # Get the DMS task details

@@ -7,41 +7,24 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install necessary packages
 RUN apt-get update && \
     apt-get install -y \
-        curl \
+        python3.9 \
+        python3.9-distutils \
+        python3.9-venv \
+        nodejs \
+        npm \
         git \
-        build-essential \
-        libssl-dev \
-        zlib1g-dev \
-        libbz2-dev \
-        libreadline-dev \
-        libsqlite3-dev \
-        wget \
-        llvm \
-        libncurses5-dev \
-        libncursesw5-dev \
-        xz-utils \
-        tk-dev \
-        libffi-dev \
-        liblzma-dev \
-        unzip
+        awscli \
+        jq \
+        curl \
+        wget
 
-# Install Python using pyenv
-RUN curl https://pyenv.run | bash && \
-    echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> ~/.bashrc && \
-    echo 'eval "$(pyenv init -)"' >> ~/.bashrc && \
-    echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc && \
-    exec $SHELL
+# Set Python 3.9 as the default python
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
 
-# Reload the shell
-SHELL ["/bin/bash", "--login", "-c"]
-
-# Install Python 3.x
-RUN pyenv install 3.x && \
-    pyenv global 3.x
-
-# Install Pip and AWS CLI
-RUN apt-get install -y python3-pip && \
-    pip3 install awscli
+# Install pip for Python 3.9
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python3.9 get-pip.py && \
+    rm get-pip.py
 
 # Clean up
 RUN apt-get clean && \
@@ -52,4 +35,3 @@ WORKDIR /app
 
 # Run your command or script here
 CMD ["/bin/bash"]
-

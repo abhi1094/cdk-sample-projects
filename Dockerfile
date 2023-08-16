@@ -23,14 +23,14 @@ RUN apt-get update && \
         tk-dev \
         libffi-dev \
         liblzma-dev \
-        python-openssl \
         unzip
 
 # Install Python using pyenv
 RUN curl https://pyenv.run | bash && \
-    echo 'export PATH="/root/.pyenv/bin:$PATH"' >> ~/.bashrc && \
+    echo 'export PATH="$HOME/.pyenv/bin:$PATH"' >> ~/.bashrc && \
     echo 'eval "$(pyenv init -)"' >> ~/.bashrc && \
-    echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc
+    echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.bashrc && \
+    exec $SHELL
 
 # Reload the shell
 SHELL ["/bin/bash", "--login", "-c"]
@@ -52,3 +52,4 @@ WORKDIR /app
 
 # Run your command or script here
 CMD ["/bin/bash"]
+

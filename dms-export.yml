@@ -1,7 +1,19 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: DMS Task and Endpoint Example
+Description: DMS Task and Replication Instance Example
 
 Resources:
+  ReplicationInstance:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      ReplicationInstanceIdentifier: MyReplicationInstance
+      AllocatedStorage: 100
+      ReplicationInstanceClass: dms.r5.large
+      VpcSecurityGroupIds:
+        - sg-01234567890abcdef
+      Tags:
+        - Key: Name
+          Value: DMSReplicationInstance
+
   SourceEndpoint:
     Type: AWS::DMS::Endpoint
     Properties:
@@ -51,3 +63,4 @@ Resources:
             }
           ]
         }
+      ReplicationInstanceArn: !Ref ReplicationInstance

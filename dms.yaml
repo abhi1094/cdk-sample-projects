@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DMS Endpoint and Task Example
+
+Resources:
+  SourceEndpoint:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: EC2SQLServerEndpoint
+      EndpointType: source
+      EngineName: sqlserver
+      ServerName: your-sql-server-instance-endpoint
+      Port: 1433
+      Username: your-username
+      Password: your-password
+      DatabaseName: your-database-name
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: your-s3-bucket-name
+
+  S3TaskSettings:
+    FormatVersion: '2018-09-17'
+    OutputFormat: parquet
+
+  MigrationTask:
+    Type: AWS::DMS::ReplicationTask
+    Properties:
+      MigrationTaskName: DMSMigrationTask
+      SourceEndpointArn: !GetAtt SourceEndpoint.EndpointArn
+      TargetEndpointArn: !Ref S3Bucket
+      MigrationType: full-load
+      TableMappings: |
+        {
+          "rules": [
+            {
+              "rule-type": "selection",
+              "rule-id": "1",
+              "rule-name": "table-filter",
+              "object-locator": {
+                "schema-name": "dbo",
+                "table-name": "your-table-name"
+              },
+              "rule-action": "include"
+            }
+          ]
+        }
+      TaskData: !Ref S3TaskSettings

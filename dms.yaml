@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: DMS Endpoint and Task Example
 
+Parameters:
+  TargetS3Bucket:
+    Type: String
+    Description: S3 bucket name where data will be migrated to
+
 Resources:
   SourceEndpoint:
     Type: AWS::DMS::Endpoint
@@ -13,7 +18,6 @@ Resources:
       Username: your-username
       Password: your-password
       DatabaseName: your-database-name
-      DatabaseName: your-database-name
       VpcSecurityGroupIds:
         - sg-0123456789abcdef0  # Replace with your security group ID
       VpcId: vpc-0123456789abcdef0  # Replace with your VPC ID
@@ -21,7 +25,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: your-s3-bucket-name
+      BucketName: !Ref TargetS3Bucket
 
   S3TaskSettings:
     FormatVersion: '2018-09-17'
@@ -50,3 +54,4 @@ Resources:
           ]
         }
       TaskData: !Ref S3TaskSettings
+

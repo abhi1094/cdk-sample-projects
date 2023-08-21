@@ -13,6 +13,10 @@ Resources:
       Username: your-username
       Password: your-password
       DatabaseName: your-database-name
+      DatabaseName: your-database-name
+      VpcSecurityGroupIds:
+        - sg-0123456789abcdef0  # Replace with your security group ID
+      VpcId: vpc-0123456789abcdef0  # Replace with your VPC ID
 
   S3Bucket:
     Type: AWS::S3::Bucket

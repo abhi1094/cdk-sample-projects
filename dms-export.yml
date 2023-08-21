@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: DMS Task and Endpoint Example
+
+Resources:
+  SourceEndpoint:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: S3Endpoint
+      EndpointType: source
+      EngineName: s3
+      BucketName: your-source-s3-bucket
+      S3Settings:
+        BucketFolder: your-s3-folder-path
+        CsvRowDelimiter: '\n'
+        CsvDelimiter: ','
+      ExtraConnectionAttributes: 'ServiceAccessRoleArn=arn:aws:iam::your-account-id:role/YourDMSRole'
+
+  TargetEndpoint:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: AuroraEndpoint
+      EndpointType: target
+      EngineName: aurora
+      ServerName: your-aurora-endpoint
+      Port: 3306
+      Username: your-aurora-username
+      Password: your-aurora-password
+      DatabaseName: your-aurora-database-name
+      SslMode: none
+      CertificateArn: your-rds-certificate-arn  # If using SSL
+
+  MigrationTask:
+    Type: AWS::DMS::ReplicationTask
+    Properties:
+      MigrationTaskName: DMSMigrationTask
+      SourceEndpointArn: !Ref SourceEndpoint
+      TargetEndpointArn: !Ref TargetEndpoint
+      MigrationType: full-load
+      TableMappings: |
+        {
+          "rules": [
+            {
+              "rule-type": "selection",
+              "rule-id": "1",
+              "rule-name": "table-filter",
+              "object-locator": {
+                "schema-name": "public",
+                "table-name": "your-table-name"
+              },
+              "rule-action": "include"
+            }
+          ]
+        }

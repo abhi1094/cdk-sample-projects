@@ -1,0 +1,44 @@
+Resources:
+  
+  DMSS3Endpoint:
+    Type: AWS::DMS::Endpoint 
+    Properties:
+    
+      ExternalTableDefinitions:
+      
+        - TableDefinition:
+            Columns:
+              - Name: tracking_id 
+                Type: int8
+                IsPk: true
+                IsNullable: false
+                
+              - Name: gps_update
+                Type: datetime
+                IsNullable: false
+                DateFormat: YYYY-MM-dd HH:mm:ss
+                IsPk: true 
+                
+              - Name: created_utc 
+                Type: datetime
+                DateFormat: YYYY-MM-dd HH:mm:ss.F
+                Scale: 3
+                
+              - Name: modified_utc
+                Type: datetime 
+                DateFormat: YYYY-MM-dd HH:mm:ss.F
+                Scale: 3
+              
+              - Name: traction_battery
+                Type: real4
+              
+              - Name: battery_health
+                Type: real4
+              
+              - Name: range
+                Type: int2
+              
+              - Name: battery_charging_ind
+                Type: boolean
+          
+          TableName: tbl_Bus

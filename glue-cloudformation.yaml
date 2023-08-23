@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template for creating an AWS Glue job with a network connection
+
+Resources:
+  MyGlueJobRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: GlueJobPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - arn:aws:s3:::your-source-code-bucket/*
+                  - arn:aws:s3:::your-source-code-bucket
+
+  MyNetworkConnection:
+    Type: "AWS::Glue::Connection"
+    Properties:
+      ConnectionInput:
+        Name: MyNetworkConnection
+        Description: Network connection for Glue job
+        ConnectionType: NETWORK
+        ConnectionProperties:
+          ENI_ID: your-eni-id
+          SECURITY_GROUP_ID_LIST: sg-12345678,sg-87654321
+          SUBNET_ID: subnet-12345678
+
+  MyGlueJob:
+    Type: "AWS::Glue::Job"
+    Properties:
+      Name: MyGlueJob
+      Role: !GetAtt MyGlueJobRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://your-source-code-bucket/path/to/your/glue-job-script.py
+      Connections:
+        Connections:
+          - !Ref MyNetworkConnection
+      DefaultArguments:
+        "--job-language": python
+
+Outputs:
+  GlueJobName:
+    Description: The name of the created Glue job
+    Value: !Ref MyGlueJob

@@ -1,0 +1,54 @@
+{
+    "TableCount": "1",
+    "Tables": [
+        {
+            "TableName": "tbl_Bus",
+            "TablePath": "dbo/tbl_bus/",
+            "TableOwner": "dbo",
+            "TableColumns": [
+                {
+                    "ColumnName": "tracking_id",
+                    "ColumnType": "INT8",
+                    "ColumnNullable": "false",
+                    "ColumnIsPk": "true"
+                },
+                {
+                    "ColumnName": "gps_update",
+                    "ColumnType": "DATETIME",
+                    "ColumnNullable": "false",
+                    "ColumnDateFormat": "YYYY-MM-dd HH:mm:ss",
+                    "ColumnIsPk": "true"
+                },
+                {
+                    "ColumnName": "created_utc",
+                    "ColumnType": "DATETIME",
+                    "ColumnDateFormat": "YYYY-MM-dd HH:mm:ss.F",
+                    "ColumnScale": "3"
+                },
+                {
+                    "ColumnName": "modified_utc",
+                    "ColumnType": "DATETIME",
+                    "ColumnDateFormat": "YYYY-MM-dd HH:mm:ss.F",
+                    "ColumnScale": "3"                
+                },                                
+                {
+                    "ColumnName": "traction_battery",
+                    "ColumnType": "REAL4"
+                },
+                {
+                    "ColumnName": "battery_health",
+                    "ColumnType": "REAL4"
+                },
+                {
+                    "ColumnName": "range",
+                    "ColumnType": "INT2"
+                },
+                {
+                    "ColumnName": "battery_charging_ind",
+                    "ColumnType": "BOOLEAN"
+                }                
+            ],
+            "TableColumnsTotal": "8"
+        }
+    ]
+}

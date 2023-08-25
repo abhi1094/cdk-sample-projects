@@ -1,0 +1,35 @@
+
+Parameters:
+
+  ServerNames:
+    Type: CommaDelimitedList 
+    Default: server1,server2,...,server16
+
+  DatabaseNames:
+    Type: CommaDelimitedList
+    Default: db1,db2,db3,...,db32
+
+Resources:
+  
+  DMSSourceEndpoint:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      ServerName: !Ref ServerNames
+      DatabaseName: !Select [0, !Split [',', !Ref DatabaseNames]]
+
+    Fn::ForEach: !Ref ServerNames  
+
+  DatabaseNamesIndex: 
+    Type: String
+    
+    Fn::ForEach: !Ref ServerNames
+    Properties: 
+      Fn::Join: ["", [!Select [0, !Split [",", !Ref DatabaseNames]], ",", !Select [1, !Split [",", !Ref DatabaseNames]]]]
+
+  DMSSourceEndpoint2:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      ServerName: !Ref ServerNames
+      DatabaseName: !Ref DatabaseNamesIndex
+
+    Fn::ForEach: !Ref ServerNames

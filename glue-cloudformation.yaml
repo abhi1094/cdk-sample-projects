@@ -55,3 +55,109 @@ Outputs:
   GlueJobName:
     Description: The name of the created Glue job
     Value: !Ref MyGlueJob
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+
+  GlueScriptsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-glue-scripts
+      
+  UploadGlueScripts:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt UploadScriptsLambda.Arn
+      BucketName: !Ref GlueScriptsBucket
+      ScriptPaths:
+        - /path/to/script1.py
+        - /path/to/script2.py
+
+  UploadScriptsLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.7
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Code:
+        ZipFile: |
+          import boto3
+          import os
+          
+          def handler(event, context):
+            s3 = boto3.client('s3')
+            
+            for path in event['ResourceProperties']['ScriptPaths']:
+              file_name = os.path.basename(path)
+              s3.upload_file(path, event['ResourceProperties']['BucketName'], file_name)
+              
+            return {}
+          
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: upload-to-s3
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                  - 's3:GetObject'
+                Resource: !Sub arn:${AWS::Partition}:s3:::${GlueScriptsBucket}        
+
+  GlueDevEndpoint:
+    Type: AWS::Glue::DevEndpoint   
+    Properties:
+      EndpointName: my-dev-endpoint
+      RoleArn: !GetAtt GlueServiceRole.Arn
+      SecurityGroupIds: 
+        - !Ref GlueSecurityGroup
+      SubnetId: !Ref GlueSubnet
+      
+      PublicKey: !Sub |
+        ${GluePublicKey}
+        
+      NumberOfNodes: 2
+      
+  GlueJob:
+    Type: AWS::Glue::Job
+    DependsOn: UploadGlueScripts
+    Properties:
+      Name: my-glue-job
+      Role: !GetAtt GlueServiceRole.Arn
+      Connections:
+        - !Ref GlueDevEndpoint
+      DefaultArguments: { "--job-language": "python" }
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub s3://${GlueScriptsBucket}/script.py
+        
+  GlueServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "glue.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+          
+# Additional IAM, VPC resources

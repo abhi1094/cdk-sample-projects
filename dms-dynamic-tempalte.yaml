@@ -1,0 +1,117 @@
+Parameters:
+
+  TargetBucketName:
+    Type: String
+    Description: Name of taget S3 bucket
+
+  ServerNames: 
+    Type: CommaDelimitedList
+    Default: server1,server2
+
+Resources:
+
+  VZCDMSubnetGroup:
+    Type: "AWS::DMS::ReplicationSubnetGroup"
+    Properties:
+      ReplicationSubnetGroupIdentifier: vzc-replication-subnet-group
+      ReplicationSubnetGroupDescription: DMS replication subnet group
+      SubnetIds:
+        - subnet-08e09287168cbe6e1
+        - subnet-05f849ccd84b65d8b
+        - subnet-06f1ea71363b061cb
+        - subnet-07dc1fe2ce397746f
+
+  ReplicationInstance1:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      ReplicationInstanceIdentifier: vzc-import-replication-instance1
+      AllocatedStorage: 100
+      ReplicationInstanceClass: dms.r6i.xlarge
+      VpcSecurityGroupIds:
+        - sg-04d00f2f1f8e0bad6 # Replace with your security group ID(s)
+      ReplicationSubnetGroupIdentifier: !Ref VZCDMSubnetGroup # Replace with your subnet group ID
+      Tags:
+        - Key: Name
+          Value: DMSReplicationInstance
+
+  ReplicationInstance2:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      ReplicationInstanceIdentifier: vzc-import-replication-instance2
+      AllocatedStorage: 100
+      ReplicationInstanceClass: dms.r6i.xlarge
+      VpcSecurityGroupIds:
+        - sg-04d00f2f1f8e0bad6 # Replace with your security group ID(s)
+      ReplicationSubnetGroupIdentifier: !Ref VZCDMSReplicationSubnetGroup # Replace with your subnet group ID
+      Tags:
+        - Key: Name
+          Value: DMSReplicationInstance
+
+  DMSEndpoint1:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: !Join ["-", [!Ref ServerNames, "mssql-source-endpoint1"]]
+      ServerName: !Ref ServerNames
+      Port: 1433
+      DatabaseName: MessageA
+      Username: '{{resolve:secretsmanager:source-mssql:SecretString:username}}'
+      Password: '{{resolve:secretsmanager:source-mssql:SecretString:username}}'
+      MySqlSettings:
+        SecretsManagerAccessRoleArn: arn:aws:iam::****:role/allow-dms-access-secrets-manager
+      
+    Fn::ForEach: !Ref ServerNames
+    
+
+  DMSEndpoint2:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: !Join ["-", [!Ref ServerNames, "mssql-source-endpoint2"]]
+      ServerName: !Ref ServerNames
+      Port: 1433
+      DatabaseName: MessageB
+      Username: '{{resolve:secretsmanager:source-mssql:SecretString:username}}'
+      Password: '{{resolve:secretsmanager:source-mssql:SecretString:username}}'
+      MySqlSettings:
+        SecretsManagerAccessRoleArn: arn:aws:iam::****:role/allow-dms-access-secrets-manager
+      
+    Fn::ForEach: !Ref ServerNames
+
+  TargetEndpoint1:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: !Join ["-", [!Ref ServerNames, "s3-target-endpoint1"]]
+      EndpointType: target
+      EngineName: s3
+      S3Settings:
+        BucketName: !Ref TargetBucketName
+        BucketFolder: !Join ["", ["raw", !Ref ServerNames, "messagea"]] 
+        CompressionType: GZIP
+        EnableStatistics: true
+        DataFormat: parquet
+        MaxFileSize: 512000
+        ServiceAccessRoleArn: arn:aws:iam::*****:role/dms-s3-access
+      Tags:
+        - Key: Name
+          Value: MyTargetEndpoint
+
+    Fn::ForEach: !Ref ServerNames
+
+  TargetEndpoint2:
+    Type: AWS::DMS::Endpoint
+    Properties:
+      EndpointIdentifier: !Join ["-", [!Ref ServerNames, "s3-target-endpoint2"]]
+      EndpointType: target
+      EngineName: s3
+      S3Settings:
+        BucketName: !Ref TargetBucketName
+        BucketFolder: !Join ["", ["raw", !Ref ServerNames, "messageb"]] 
+        CompressionType: GZIP
+        EnableStatistics: true
+        DataFormat: parquet
+        MaxFileSize: 512000
+        ServiceAccessRoleArn: arn:aws:iam::*****:role/dms-s3-access
+      Tags:
+        - Key: Name
+          Value: MyTargetEndpoint
+
+    Fn::ForEach: !Ref ServerNames

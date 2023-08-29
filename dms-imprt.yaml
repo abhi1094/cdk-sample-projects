@@ -1,102 +1,96 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: CloudFormation template for DMS replication instance, endpoints, and task
+AWSTemplateFormatVersion: "2010-09-09"
+Description: DMS Replication Instance, Endpoint, and Task Example
 
 Parameters:
-  SourceDBInstanceIdentifier:
+  TargetBucketName:
     Type: String
-    Description: Identifier of the source SQL Server DB instance
+    Description: Name of taget S3 bucket
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of subnet IDs where the DMS Subnet Group will be created
 
 Resources:
-  ReplicationInstance:
-    Type: "AWS::DMS::ReplicationInstance"
+
+  VZCDMSReplicationSubnetGroup:
+    Type: "AWS::DMS::ReplicationSubnetGroup"
     Properties:
-      ReplicationInstanceIdentifier: MyReplicationInstance
+      ReplicationSubnetGroupIdentifier: VZCDMSReplicationSubnetGroup
+      ReplicationSubnetGroupDescription: DMS replication subnet group
+      SubnetIds: !Ref SubnetIds
+
+  ReplicationInstance:
+    Type: AWS::DMS::ReplicationInstance
+    Properties:
+      ReplicationInstanceIdentifier: VZCImportReplicationInstance
       AllocatedStorage: 100
-      AutoMinorVersionUpgrade: true
-      AvailabilityZone: us-east-1a
-      EngineVersion: 3.4.4
-      ReplicationInstanceClass: dms.r5.large
+      ReplicationInstanceClass: dms.r6i.xlarge
       VpcSecurityGroupIds:
-        - sg-12345678901234567  # Replace with your security group ID(s)
-      ReplicationSubnetGroupIdentifier: MyReplicationSubnetGroup
+        - sg-04d00f2f1f8e0bad6 # Replace with your security group ID(s)
+      ReplicationSubnetGroupIdentifier: !Ref VZCDMSReplicationSubnetGroup # Replace with your subnet group ID
       Tags:
         - Key: Name
-          Value: MyReplicationInstance
+          Value: DMSReplicationInstance
 
   SourceEndpoint:
-    Type: "AWS::DMS::Endpoint"
+    Type: AWS::DMS::Endpoint
     Properties:
-      EndpointIdentifier: MySourceEndpoint
+      EndpointIdentifier: MSSQLSourceEndpoint
       EndpointType: source
       EngineName: sqlserver
-      Username: !GetAtt MySourceDBSecret.SecretString.username
-      Password: !GetAtt MySourceDBSecret.SecretString.password
-      ServerName: !Ref SourceDBInstanceIdentifier
+      ServerName: ec2-sql-server
       Port: 1433
-      DatabaseName: your_database_name
-      ExtraConnectionAttributes: "IntegratedSecurity=false;"
-      Tags:
-        - Key: Name
-          Value: MySourceEndpoint
+      DatabaseName: VerizonConnect
+      Username: '{{resolve:secretsmanager:source-mssql:SecretString:username}}'
+      Password: '{{resolve:secretsmanager:source-mssql:SecretString:username}}'
+      MySqlSettings:
+        SecretsManagerAccessRoleArn: arn:aws:iam::****:role/allow-dms-access-secrets-manager
 
-  MySourceDBSecret:
-    Type: "AWS::SecretsManager::Secret"
-    Properties:
-      SecretId: arn:aws:secretsmanager:us-east-1:123456789012:secret:MyExistingSecret-abc123
-
-  TargetBucket:
-    Type: "AWS::S3::Bucket"
-    Properties:
-      BucketName: my-target-bucket
-      AccessControl: Private
 
   TargetEndpoint:
-    Type: "AWS::DMS::Endpoint"
+    Type: AWS::DMS::Endpoint
     Properties:
-      EndpointIdentifier: MyTargetEndpoint
+      EndpointIdentifier: S3TargetEndpoint
       EndpointType: target
       EngineName: s3
-      BucketName: !Ref TargetBucket
-      ServiceAccessRoleArn: arn:aws:iam::123456789012:role/YourDMSRole
+      S3Settings:
+        BucketName: !Ref TargetBucketName
+        BucketFolder: raw
+        CompressionType: GZIP
+        EnableStatistics: true
+        DataFormat: parquet
+        MaxFileSize: 512000
+        ServiceAccessRoleArn: arn:aws:iam::*****:role/dms-s3-access
       Tags:
         - Key: Name
-          Value: MyTargetEndpoint
+          Value: MyTargetEndpoint 
 
-  DmsTask:
-    Type: "AWS::DMS::Task"
+
+  MigrationTask:
+    Type: AWS::DMS::ReplicationTask
     Properties:
-      MigrationType: "cdc"
+      SourceEndpointArn: !Ref SourceEndpoint
+      TargetEndpointArn: !Ref TargetEndpoint
+      ReplicationInstanceArn: !Ref ReplicationInstance
+      MigrationType: full-load
       TableMappings: |
         {
           "rules": [
             {
               "rule-type": "selection",
-              "rule-id": "1",
-              "rule-name": "1",
+              "rule-id": "029219233",
+              "rule-name": "029219233",
               "object-locator": {
-                "schema-name": "dbo",
-                "table-name": "YourTableName"
+                  "schema-name": "dbo",
+                  "table-name": "tbl_DTCEvents"
               },
-              "rule-action": "include"
-            }
+              "rule-action": "include",
+              "filters": []
+            },
           ]
         }
-      SourceEndpointArn: !GetAtt SourceEndpoint.EndpointArn
-      TargetEndpointArn: !GetAtt TargetEndpoint.EndpointArn
-      MigrationTaskName: MyDmsTask
-      Tags:
-        - Key: Name
-          Value: MyDmsTask
 
 Outputs:
   ReplicationInstanceArn:
-    Description: ARN of the created DMS replication instance
-    Value: !GetAtt ReplicationInstance.ReplicationInstanceArn
-
-  SourceEndpointArn:
-    Description: ARN of the created DMS source endpoint
-    Value: !GetAtt SourceEndpoint.EndpointArn
-
-  TargetEndpointArn:
-    Description: ARN of the created DMS target endpoint
-    Value: !GetAtt TargetEndpoint.EndpointArn
+    Description: The ARN of the DMS Replication Instance
+    Value: !Ref ReplicationInstance

@@ -1,0 +1,13 @@
+Resources:
+  Fn::ForEach::DMSSourceTargetTask:
+    - ServerName
+    - [FirstInstance, SecondInstance, ThirdInstance]
+    - 'SourceEndpoint${ServerName}':
+        Type: AWS::DMS::Endpoint
+        Properties:
+          EndpointIdentifier: !Join ["-", [!Ref ServerName, "mssql-source-endpoint1"]]
+          EndpointType: source
+          EngineName: sqlserver
+          ServerName: !Ref ServerName
+          Port: 1433
+          DatabaseName: MessageA

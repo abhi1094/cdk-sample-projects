@@ -1,91 +1,25 @@
-AWSTemplateFormatVersion: "2010-09-09"
-Description: DMS Replication Instance, Endpoint, and Task Example
-
-Parameters:
-  TargetBucketName:
-    Type: String
-    Description: Name of taget S3 bucket
-
-  SubnetIds:
-    Type: List<AWS::EC2::Subnet::Id>
-    Description: List of subnet IDs where the DMS Subnet Group will be created
-
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::LanguageExtensions'
 Resources:
-
-  ABCDMSReplicationSubnetGroup:
-    Type: "AWS::DMS::ReplicationSubnetGroup"
-    Properties:
-      ReplicationSubnetGroupIdentifier: ABCDMSReplicationSubnetGroup
-      ReplicationSubnetGroupDescription: DMS replication subnet group
-      SubnetIds: !Ref SubnetIds
-
-  ReplicationInstance:
-    Type: AWS::DMS::ReplicationInstance
-    Properties:
-      ReplicationInstanceIdentifier: ABCImportReplicationInstance
-      AllocatedStorage: 100
-      ReplicationInstanceClass: dms.r6i.xlarge
-      VpcSecurityGroupIds:
-        - sg-04d00f2f1f8e0bad6 # Replace with your security group ID(s)
-      ReplicationSubnetGroupIdentifier: !Ref ABCDMSReplicationSubnetGroup
-      Tags:
-        - Key: Name
-          Value: DMSReplicationInstance
-
-{% for instance_name in ["FirstInstance", "SecondInstance", "ThirdInstance"] %}
-  SourceEndpoint{{ instance_name }}:
+{% for server in servers %}
+  SourceEndpoint{{ server.server_name }}:
     Type: AWS::DMS::Endpoint
     Properties:
-      EndpointIdentifier: {{ instance_name }}MSSQLSourceEndpoint
-      EndpointType: source
-      EngineName: sqlserver
-      ServerName: ec2-sql-server
-      Port: 1433
-      DatabaseName: VerizonConnect
-      Username: '{{resolve:secretsmanager:source-mssql:SecretString:username}}'
-      Password: '{{resolve:secretsmanager:source-mssql:SecretString:password}}'
-      MySqlSettings:
-        SecretsManagerAccessRoleArn: arn:aws:iam::****:role/allow-dms-access-secrets-manager
+      EndpointIdentifier: "{{ server.ip_address }}-mssql-source-endpoint"
+      # Additional properties ...
 
-  TargetEndpoint{{ instance_name }}:
+  TargetEndpoint{{ server.server_name }}:
     Type: AWS::DMS::Endpoint
     Properties:
-      EndpointIdentifier: {{ instance_name }}S3TargetEndpoint
-      EndpointType: target
-      EngineName: s3
-      S3Settings:
-        BucketName: !Ref TargetBucketName
-        BucketFolder: raw
-        CompressionType: GZIP
-        EnableStatistics: true
-        DataFormat: parquet
-        MaxFileSize: 512000
-        ServiceAccessRoleArn: arn:aws:iam::*****:role/dms-s3-access
-      Tags:
-        - Key: Name
-          Value: MyTargetEndpoint{{ instance_name }}
+      EndpointIdentifier: "{{ server.server_name }}-mssql-target-endpoint"
+      # Additional properties ...
 
-  MigrationTask{{ instance_name }}:
+  DMSTask{{ server.server_name }}:
     Type: AWS::DMS::ReplicationTask
     Properties:
-      SourceEndpointArn: !Ref SourceEndpoint{{ instance_name }}
-      TargetEndpointArn: !Ref TargetEndpoint{{ instance_name }}
-      ReplicationInstanceArn: !Ref ReplicationInstance
-      MigrationType: full-load
-      TableMappings: |
-        {
-          "rules": [
-            {
-              "rule-type": "selection",
-              "rule-id": "029219233",
-              "rule-name": "029219233",
-              "object-locator": {
-                  "schema-name": "dbo",
-                  "table-name": "tbl_DTCEvents"
-              },
-              "rule-action": "include",
-              "filters": []
-            },
-          ]
-        }
+      MigrationType: "full-load"
+      TableMappings: "your-table-mappings"
+      ReplicationTaskIdentifier: "{{ server.server_name }}-dms-task"
+      SourceEndpointArn: !Ref SourceEndpoint{{ server.server_name }}
+      TargetEndpointArn: !Ref TargetEndpoint{{ server.server_name }}
 {% endfor %}

@@ -1,79 +1,14 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: DMS Replication Instance, Endpoint, and Task Example
-
-Resources:
-  ReplicationInstance:
-    Type: AWS::DMS::ReplicationInstance
-    Properties:
-      ReplicationInstanceIdentifier: MyReplicationInstance
-      AllocatedStorage: 100
-      ReplicationInstanceClass: dms.r5.large
-      VpcSecurityGroupIds:
-        - sg-01234567890abcdef  # Replace with your security group ID(s)
-      ReplicationSubnetGroupIdentifier: your-replication-subnet-group  # Replace with your subnet group ID
-      Tags:
-        - Key: Name
-          Value: DMSReplicationInstance
-
-  SourceEndpoint:
-    Type: AWS::DMS::Endpoint
-    Properties:
-      EndpointIdentifier: EC2SourceEndpoint
-      EndpointType: source
-      EngineName: sqlserver
-      ServerName: your-ec2-sql-server-endpoint
-      Port: 1433
-      DatabaseName: your-database-name
-      Username: your-username
-      Password: your-password
-      ExtraConnectionAttributes: 'ServiceAccessRoleArn=arn:aws:iam::your-account-id:role/YourDMSRole'
-      CertificateArn: your-ssl-certificate-arn  # If using SSL
-      ReplicationInstanceArn: !Ref ReplicationInstance
-
-  S3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: your-target-s3-bucket
-      AccessControl: Private
-      VersioningConfiguration:
-        Status: Enabled
-
-  TargetEndpoint:
-    Type: AWS::DMS::Endpoint
-    Properties:
-      EndpointIdentifier: S3TargetEndpoint
-      EndpointType: target
-      EngineName: s3
-      BucketName: !Ref S3Bucket
-      BucketFolder: your-s3-folder-path
-      ReplicationInstanceArn: !Ref ReplicationInstance
-
-  MigrationTask:
-    Type: AWS::DMS::ReplicationTask
-    Properties:
-      MigrationTaskName: DMSMigrationTask
-      SourceEndpointArn: !Ref SourceEndpoint
-      TargetEndpointArn: !Ref TargetEndpoint
-      MigrationType: full-load
-      TableMappings: |
-        {
-          "rules": [
-            {
-              "rule-type": "selection",
-              "rule-id": "1",
-              "rule-name": "table-filter",
-              "object-locator": {
-                "schema-name": "dbo",
-                "table-name": "your-table-name"
-              },
-              "rule-action": "include"
-            }
-          ]
-        }
-
-Outputs:
-  ReplicationInstanceArn:
-    Description: The ARN of the DMS Replication Instance
-    Value: !Ref ReplicationInstance
-
-
+        Type: AWS::DMS::Endpoint
+        Properties:
+          EndpointIdentifier: !Join ['--', [!Ref Environment, !Ref SourceEndpointName]]
+          EndpointType: source
+          EngineName: !Ref SourceEndpointDatabaseEngineName
+          ServerName: !Ref SourceEndpointServerName
+          Port: !Ref SourceEndpointDatabasePort
+          DatabaseName: !If [ HasSourceDatabaseName, !Ref SourceDatabaseName, !Ref "AWS::NoValue" ]
+          Username: !Join
+            - ":"
+            - - "{{resolve:secretsmanager"
+              - !Ref SourceEndpointDatabaseCredentialsSecret
+              - "secret-string"
+              - "username}}"

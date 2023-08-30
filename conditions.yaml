@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  CreateS3Bucket:
+    Description: Should the S3 bucket be created?
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+
+Conditions:
+  ShouldCreateS3Bucket: !Equals [!Ref CreateS3Bucket, "true"]
+
+Resources:
+  MyS3Bucket:
+    Condition: ShouldCreateS3Bucket
+    Type: "AWS::S3::Bucket"
+    Properties:
+      # bucket properties here

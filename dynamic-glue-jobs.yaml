@@ -1,0 +1,21 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::LanguageExtensions'
+Parameters:
+  GlueJobNames:
+    Description: Names of the Glue Jobs to create
+    Type: CommaDelimitedList
+    Default: "Job1,Job2,Job3,Job4,Job5,Job6,Job7,Job8,Job9,Job10,Job11,Job12,Job13,Job14,Job15"
+Resources:
+  'Fn::ForEach::GlueJobs':
+    - GlueJobName
+    - !Ref GlueJobNames
+    - 'GlueJob${GlueJobName}':
+        Type: 'AWS::Glue::Job'
+        Properties:
+          Name: !Sub 'glue-job-${GlueJobName}'
+          Role: 'GlueServiceRole'
+          Command:
+            Name: 'glueetl'
+            ScriptLocation: !Sub 's3://my-bucket/scripts/glue-job-${GlueJobName}.py'
+          DefaultArguments:
+            '--TempDir': 's3://my-bucket/temp/'

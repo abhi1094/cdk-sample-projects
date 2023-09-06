@@ -1,0 +1,12 @@
+{
+    "server_mappings": {
+        "server01": "1.1.1.1"
+    },
+    "databases": ["MessageA"],
+    "categories": {
+        "canbus_message" :[
+            "tablea",
+            "tableb"
+        ]
+    }
+}

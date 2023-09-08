@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create a Glue job with CloudWatch alarms
+
+Resources:
+  MyGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: MyGlueJob
+      Role: !GetAtt MyGlueJobRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://your-bucket/your-glue-job-script.py
+      DefaultArguments:
+        "--job-language": "python"
+        "--job-bookmark-option": "job-bookmark-enable"
+        "--S3_BUCKET": "your-bucket"
+      MaxRetries: 2
+      Timeout: 10
+      WorkerType: G.1X
+      NumberOfWorkers: 5
+
+  MyGlueJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: GlueJobPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - arn:aws:logs:us-east-1:123456789012:log-group:/aws-glue/jobs:*
+                  - arn:aws:logs:us-east-1:123456789012:log-group:/aws-glue/jobs/*
+              - Effect: Allow
+                Action: logs:DescribeLogStreams
+                Resource: arn:aws:logs:us-east-1:123456789012:log-group:/aws-glue/jobs:*
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:GetMetricData
+                  - cloudwatch:GetMetricWidgetImage
+                Resource: "*"
+
+  MyLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws-glue/jobs/my-glue-job
+
+  MyMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref MyLogGroup
+      FilterPattern: '{$.jobRun.state="FAILED"}'
+      MetricTransformations:
+        - MetricName: GlueJobFailures
+          MetricNamespace: MyNamespace
+          MetricValue: 1
+          defaultValue: 0
+
+  MyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: MyGlueJobFailureAlarm
+      AlarmDescription: Alarm triggered when Glue job fails more than 2 times
+      Namespace: MyNamespace
+      MetricName: GlueJobFailures
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 2
+      AlarmActions:
+        - !Ref MySNSTopic
+      Dimensions:
+        - Name: JobName
+          Value: MyGlueJob
+
+  MySNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: MySNS

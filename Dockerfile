@@ -1,47 +1,69 @@
-# Use the official Ubuntu 20.04 base image
-FROM ubuntu:20.04
+# Use the official Ubuntu base image
+FROM ubuntu:latest
 
 # Set environment variables
-ENV PYENV_ROOT /root/.pyenv
-ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
-ENV VENV_PATH /app/.venv
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install dependencies
+# Install necessary packages
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    make build-essential libssl-dev zlib1g-dev libbz2-dev \
-    libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev \
-    libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev python-openssl git
+    apt-get install -y \
+        build-essential \
+        zlib1g-dev \
+        libncurses5-dev \
+        libgdbm-dev \
+        libnss3-dev \
+        libssl-dev \
+        libreadline-dev \
+        libffi-dev \
+        curl \
+        wget \
+        git \
+        awscli \
+        jq \
+        nodejs \
+        npm \
+        python3 python3-pip && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*
 
-# Install Pyenv
-RUN curl https://pyenv.run | bash
+ENV PATH="/root/.local/bin:${PATH}"
 
-# Install Python version (change this to the version you need)
-RUN pyenv install 3.8.5
 
-# Set the default Python version to use
-RUN pyenv global 3.8.5
+# # Download and install Python 3.9 from source
+# RUN wget https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tgz && \
+#     tar -xf Python-3.9.6.tgz && \
+#     cd Python-3.9.6 && \
+#     ./configure && \
+#     make && \
+#     make install
 
-# Install pip
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
-    python get-pip.py
+# # Install pip for Python 3.9
+# RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+#     python3.9 get-pip.py && \
+#     rm get-pip.py
 
-# Create a virtual environment
-RUN python -m venv $VENV_PATH
+# # Clean up
+# RUN apt-get clean && \
+#     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
+#     rm -rf Python-3.9.6*
 
-# Activate the virtual environment
-ENV PATH="$VENV_PATH/bin:$PATH"
+ARG BUILD_PATH=/data  
+ARG AWS_TARGET_ACCOUNT
+ARG BRANCH_NAME 
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY 
+ARG AWS_SESSION_TOKEN
 
-# Copy the requirements file into the Docker image
-COPY requirements.txt .
+# RUN python3 -m venv .venv
+# RUN . .venv/bin/activate
+RUN python3 -V
 
-# Install Python dependencies
-RUN pip install -r requirements.txt
+COPY data-glue-canbus-message.json .
 
-# Clean up
-RUN apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+COPY e2e_wrapper_canbus_message.py .
 
-# Verify installation
-RUN python --version
-RUN pip --version
+COPY dev-requirements.txt .
+
+RUN pip install -r dev-requirements.txt -q
+
+CMD ["python3", "-u", "e2e_wrapper_canbus_message.py"]

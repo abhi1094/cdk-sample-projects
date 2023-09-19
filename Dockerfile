@@ -22,48 +22,22 @@ RUN apt-get update && \
         jq \
         nodejs \
         npm \
-        python3 python3-pip && \
+        python3 python3-pip python3-venv && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/root/.local/bin:${PATH}"
 
+# Create a virtual environment and activate it
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# # Download and install Python 3.9 from source
-# RUN wget https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tgz && \
-#     tar -xf Python-3.9.6.tgz && \
-#     cd Python-3.9.6 && \
-#     ./configure && \
-#     make && \
-#     make install
-
-# # Install pip for Python 3.9
-# RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
-#     python3.9 get-pip.py && \
-#     rm get-pip.py
-
-# # Clean up
-# RUN apt-get clean && \
-#     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
-#     rm -rf Python-3.9.6*
-
-ARG BUILD_PATH=/data  
-ARG AWS_TARGET_ACCOUNT
-ARG BRANCH_NAME 
-ARG AWS_ACCESS_KEY_ID
-ARG AWS_SECRET_ACCESS_KEY 
-ARG AWS_SESSION_TOKEN
-
-# RUN python3 -m venv .venv
-# RUN . .venv/bin/activate
-RUN python3 -V
-
-COPY data-glue-canbus-message.json .
-
-COPY e2e_wrapper_canbus_message.py .
-
+# Now you can install Python packages using pip
 COPY dev-requirements.txt .
-
 RUN pip install -r dev-requirements.txt -q
+
+# Copy your application into the container
+COPY data-glue-canbus-message.json .
+COPY e2e_wrapper_canbus_message.py .
 
 CMD ["python3", "-u", "e2e_wrapper_canbus_message.py"]

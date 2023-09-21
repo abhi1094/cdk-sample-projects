@@ -28,6 +28,12 @@ Resources:
                     "LaunchType": "FARGATE",
                     "Cluster": "${EcsCluster}",
                     "TaskDefinition": "${EcsTaskDefinition}",
+                    "NetworkConfiguration": {
+                      "AwsvpcConfiguration": {
+                        "Subnets": ["${Subnet1}", "${Subnet2}"],
+                        "SecurityGroups": ["${SecurityGroup}"],
+                        "AssignPublicIp": "ENABLED"
+                      }
                     "Overrides": {
                       "ContainerOverrides": [
                         {

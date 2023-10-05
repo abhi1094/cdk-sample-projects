@@ -1,0 +1,10 @@
+# Define your Glue job name and parameters
+$JobName = 'YourGlueJobName'
+$Parameters = @{
+    'param1' = 'value1',
+    'param2' = 'value2',
+    # Add more parameters as needed
+}
+
+# Trigger the Glue job with parameters
+Start-GlueJobRun -JobName $JobName -Arguments $Parameters

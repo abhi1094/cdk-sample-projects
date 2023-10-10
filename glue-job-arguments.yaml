@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: AWS CloudFormation Template for an AWS Glue Job
+
+Parameters:
+  GlueJobArguments:
+    Type: String
+    Description: JSON representation of Glue job arguments
+    Default: "{}"
+
+Resources:
+  GlueJob:
+    Type: "AWS::Glue::Job"
+    Properties:
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://your-bucket/your-glue-script.py
+      DefaultArguments:
+        !Fn::Sub:
+          - "--myArgument=${Arguments}"
+          - Arguments: !Ref GlueJobArguments

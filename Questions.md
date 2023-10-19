@@ -5,3 +5,6 @@ Does AmazonRekognition use different ML algorithms to detect faces in different 
 
 Are there some best practices for the values of the Confidence of Rekognition Labels ? 
 For example, when calculating the Dominant Label for a picture, which Labels should be considered (the minimum Confidence) ?
+
+
+Can you talk a bit about how to use EKS for long-running heavy compute jobs? Alternatively, is there something more suitable given that Kubernetes is meant more for lighter, stateless workloads?

@@ -3,3 +3,16 @@ __name__ - amazonaws_com_ECS_ContainerInsights_MemoryUtilized, ClusterName - ecs
 __name__ - amazonaws_com_ECS_ContainerInsights_MemoryReserved, ClusterName - ecs-blueprint-infra, MetricName - MemoryReserved, Namespace - ECS/ContainerInsights, aws_cloudformation_logical_id - CoreInfrastructureConstructEcsCluster53659F5A, aws_cloudformation_stack_id - arn:aws:cloudformation:eu-west-1:790343457634:stack/CoreInfraStack/a7c70470-33c0-11ef-bcd6-0239efbdea07, aws_cloudformation_stack_name - CoreInfraStack, aws_exporter_arn - arn:aws:cloudwatch:eu-west-1:790343457634:metric-stream/coralogix-firehose, cloud_account_id - 790343457634, cloud_provider - aws, cloud_region - eu-west-1, cx_application_name - coralogix-firehose-metrics, cx_subsystem_name - coralogix-firehose, job - coralogix-firehose-metrics, quantile - 1, service_name - coralogix-firehose-metrics
 
 __name__ - amazonaws_com_ECS_ContainerInsights_MemoryReserved, ClusterName - ecs-blueprint-infra, MetricName - MemoryReserved, Namespace - ECS/ContainerInsights, aws_cloudformation_logical_id - CoreInfrastructureConstructEcsCluster53659F5A, aws_cloudformation_stack_id - arn:aws:cloudformation:eu-west-1:790343457634:stack/CoreInfraStack/a7c70470-33c0-11ef-bcd6-0239efbdea07, aws_cloudformation_stack_name - CoreInfraStack, aws_exporter_arn - arn:aws:cloudwatch:eu-west-1:790343457634:metric-stream/coralogix-firehose, cloud_account_id - 790343457634, cloud_provider - aws, cloud_region - eu-west-1, cx_application_name - coralogix-firehose-metrics, cx_subsystem_name - coralogix-firehose, job - coralogix-firehose-metrics, quantile - 0, service_name - coralogix-firehose-metrics
+
+
+# Calculate the average memory reserved
+avg_memory_reserved = avg(amazonaws_com_ECS_ContainerInsights_MemoryReserved{Namespace="ECS/ContainerInsights"})
+
+# Calculate the average memory utilized
+avg_memory_utilized = avg(amazonaws_com_ECS_ContainerInsights_MemoryUtilized{Namespace="ECS/ContainerInsights"})
+
+# Calculate memory utilization percentage
+memory_utilization_percentage = (avg_memory_utilized / avg_memory_reserved) * 100
+
+# Filter for when memory utilization percentage exceeds 80%
+memory_utilization_percentage > 80
